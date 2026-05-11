@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clinical-rag-eval-engine"
+version = "0.1.0"
+description = "Healthcare-grade clinical RAG system with multi-layered evaluation, observability, and prompt management."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = [
+    # Core RAG stack -----
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-community>=0.3.0",
+    "langchain-chroma>=0.2.0",
+    "chromadb>=0.5.0",
+    "openai>=1.40.0",
+    "rank-bm25>=0.2.2",
+
+    # PDF extraction -----
+    "pymupdf>=1.24.0",
+
+    # Eval -----
+    "ragas>=0.2.0",
+
+    # Observability & tracking -----
+    "langfuse>=2.40.0",
+    "mlflow>=2.15.0",
+
+    # API -----
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+
+    # Dashboard -----
+    "streamlit>=1.37.0",
+    "plotly>=5.22.0",
+
+    # Config & utilities -----
+    "pydantic>=2.8.0",
+    "pydantic-settings>=2.3.0",
+    "pyyaml>=6.0.1",
+    "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "types-PyYAML>=6.0.0",
+    "pre-commit>=3.7.0",
+]
+
+[project.scripts]
+clinical-rag-ingest = "clinical_rag.ingest.indexer:main"
+clinical-rag-serve = "clinical_rag.api.app:main"
+clinical-rag-eval = "clinical_rag.eval.runner:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # I'll start permissive; reminder to tighten later
+ignore_missing_imports = true  # Because many ML libs lack type stubs
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"
