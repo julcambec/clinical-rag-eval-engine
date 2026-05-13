@@ -23,15 +23,15 @@ This repo builds the **evaluation and observability infrastructure** that suppor
 
 ## Key Features
 
-- **Hybrid Retrieval** — Dense embedding search (ChromaDB) + sparse keyword search (BM25) with reciprocal rank fusion
-- **Clinical Faithfulness Scoring** — Custom LLM-as-judge with a domain-specific rubric (clinical accuracy, scope appropriateness, hedging quality, harmful omission risk)
-- **RAGAS Evaluation Baselines** — Context precision, context recall, faithfulness, and answer relevancy on a curated gold dataset
-- **Citation Accuracy Verification** — Automated checking that generated citations match retrieved source passages
-- **Prompt-Version Regression Testing** — Measurable comparison across versioned prompts with documented rationale
-- **Langfuse Observability** — Full LLM call tracing with cost, latency, and token breakdowns
-- **MLflow Experiment Tracking** — Every eval run logged with metrics, parameters, and artifacts
-- **Config-Driven Architecture** — YAML configuration with Pydantic validation throughout; no magic numbers
-- **Docker Compose Deployment** — One-command stack: app + ChromaDB + Langfuse
+- **Hybrid Retrieval**: Dense embedding search (ChromaDB) + sparse keyword search (BM25) with reciprocal rank fusion
+- **Clinical Faithfulness Scoring**: Custom LLM-as-judge with a domain-specific rubric (clinical accuracy, scope appropriateness, hedging quality, harmful omission risk)
+- **RAGAS Evaluation Baselines**: Context precision, context recall, faithfulness, and answer relevancy on a curated gold dataset
+- **Citation Accuracy Verification**: Automated checking that generated citations match retrieved source passages
+- **Prompt-Version Regression Testing**: Measurable comparison across versioned prompts with documented rationale
+- **Langfuse Observability**: Full LLM call tracing with cost, latency, and token breakdowns
+- **MLflow Experiment Tracking**: Every eval run logged with metrics, parameters, and artifacts
+- **Config-Driven Architecture**: YAML configuration with Pydantic validation throughout; no magic numbers
+- **Docker Compose Deployment**: One-command stack: app + ChromaDB + Langfuse
 
 ---
 
@@ -86,9 +86,9 @@ make dashboard   # Launch the eval results dashboard
 
 The system uses three publicly available clinical practice guidelines focused on mental health:
 
-1. **WHO mhGAP Intervention Guide** — Global mental health clinical guidance
-2. **CANMAT 2016 Guidelines for Major Depressive Disorder** — Canadian clinical practice guidelines
-3. **NICE Depression in Adults (NG222)** — UK national clinical guidance
+1. **WHO mhGAP Intervention Guide**: Global mental health clinical guidance
+2. **CANMAT 2016 Guidelines for Major Depressive Disorder**: Canadian clinical practice guidelines
+3. **NICE Depression in Adults (NG222)**: UK national clinical guidance
 
 This GenAI service extends previous work on brain-based psychiatric risk subtyping (see [brain-risk-hybrid-ML-engine](https://github.com/julcambec/brain-risk-hybrid-ML-engine)).
 

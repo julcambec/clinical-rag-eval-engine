@@ -1,0 +1,22 @@
+# Retrieval configuration
+chunking:
+  chunk_size: 1000       # characters per chunk
+  chunk_overlap: 200     # overlap between consecutive chunks
+  separators:            # split boundaries, tried in order
+    - "\n\n"
+    - "\n"
+    - ". "
+    - " "
+
+dense:
+  embedding_model: "text-embedding-3-small"
+  collection_name: "clinical_guidelines"
+  top_k: 10
+
+sparse:
+  top_k: 10
+
+fusion:
+  strategy: "rrf"         # reciprocal rank fusion
+  rrf_k: 60               # RRF constant (standard default)
+  final_top_k: 5          # chunks passed to generation
