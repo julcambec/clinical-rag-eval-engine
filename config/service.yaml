@@ -1,0 +1,23 @@
+# Service configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+langfuse:
+  enabled: true
+  host: "http://localhost:3000"          # overridden by LANGFUSE_HOST env var
+
+mlflow:
+  enabled: true
+  tracking_uri: "http://localhost:5000"  # overridden by MLFLOW_TRACKING_URI env var
+  experiment_name: "clinical-rag-eval"
+
+logging:
+  level: "INFO"
+  format: "json"                         # structured JSON logging for production
+
+# Ollama (alternative LLM backend; not primary at the moment)
+ollama:
+  enabled: false
+  base_url: "http://localhost:11434"
+  model: "llama3.1"

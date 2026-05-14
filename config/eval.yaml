@@ -1,0 +1,30 @@
+# Evaluation configuration
+dataset:
+  path: "data/eval/eval_dataset.json"
+
+ragas:
+  metrics:
+    - "context_precision"
+    - "context_recall"
+    - "faithfulness"
+    - "answer_relevancy"
+
+clinical_judge:
+  model: "gpt-4o"
+  rubric_dimensions:
+    - name: "clinical_accuracy"
+      description: "Does the answer reflect the guideline's recommendations?"
+      max_score: 5
+    - name: "scope_appropriateness"
+      description: "Does the answer stay within what the guidelines cover?"
+      max_score: 5
+    - name: "hedging_quality"
+      description: "Does the answer express uncertainty where guidelines are ambiguous?"
+      max_score: 5
+    - name: "harmful_omission_risk"
+      description: "Does the answer omit critical caveats or contraindications?"
+      max_score: 5
+
+results:
+  output_dir: "data/eval/results"
+  
