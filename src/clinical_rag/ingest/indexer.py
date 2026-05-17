@@ -39,6 +39,7 @@ BM25_DIR = PROJECT_ROOT / "data" / "bm25_index"
 # ChromaDB indexing
 # ------------------
 
+
 def get_chroma_client(persist_dir: Path | None = None) -> chromadb.ClientAPI:
     """
     Create a persistent ChromaDB client.
@@ -137,6 +138,7 @@ def index_chunks_chroma(
 # BM25 indexing
 # ---------------
 
+
 def _tokenize(text: str) -> list[str]:
     """
     Simple whitespace + lowercasing tokenizer for BM25.
@@ -208,6 +210,7 @@ def index_chunks_bm25(
 # Full ingestion pipeline
 # ------------------------
 
+
 def run_ingestion(
     guidelines_dir: Path | None = None,
     chroma_dir: Path | None = None,
@@ -266,6 +269,7 @@ def run_ingestion(
 # ----------------
 # CLI entry point
 # ----------------
+
 
 def main() -> None:
     """CLI entry point for `make ingest` / `clinical-rag-ingest`."""

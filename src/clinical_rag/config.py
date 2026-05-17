@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 # This walks upward from this file to find the directory containing pyproject.toml.
 # This works whether the code runs installed, from src/, or from the repo root.
 
+
 def _find_project_root() -> Path:
     """Locate the project root by searching upward for pyproject.toml."""
     current = Path(__file__).resolve().parent
@@ -38,6 +39,7 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 # YAML loader helper
 # -------------------
 
+
 def _load_yaml(filename: str) -> dict[str, Any]:
     """Load a YAML file from the config directory."""
     filepath = CONFIG_DIR / filename
@@ -52,6 +54,7 @@ def _load_yaml(filename: str) -> dict[str, Any]:
 # ------------------------------------------
 
 # --- retrieval.yaml ---
+
 
 class ChunkingConfig(BaseModel):
     chunk_size: int = 1000
@@ -84,6 +87,7 @@ class RetrievalConfig(BaseModel):
 
 # --- generation.yaml ---
 
+
 class LLMConfig(BaseModel):
     model: str = "gpt-4o-mini"
     temperature: float = 0.1
@@ -101,6 +105,7 @@ class GenerationConfig(BaseModel):
 
 
 # --- eval.yaml ---
+
 
 class RubricDimension(BaseModel):
     name: str
@@ -141,6 +146,7 @@ class EvalConfig(BaseModel):
 
 # --- service.yaml ---
 
+
 class APIConfig(BaseModel):
     host: str = "0.0.0.0"
     port: int = 8000
@@ -179,6 +185,7 @@ class ServiceConfig(BaseModel):
 # --------------------------
 # Top-level settings object
 # --------------------------
+
 
 class Settings(BaseModel):
     """Aggregated settings loaded from all config YAML files."""
