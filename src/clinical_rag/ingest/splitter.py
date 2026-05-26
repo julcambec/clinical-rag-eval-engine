@@ -121,7 +121,7 @@ def split_pages(
     )
 
     if chunks:
-        sizes = [c.metadata["chunk_char_count"] for c in chunks]
+        sizes = [int(c.metadata["chunk_char_count"]) for c in chunks]
         logger.info(
             "Chunk sizes: min= %d, max= %d, mean= %d",
             min(sizes),
