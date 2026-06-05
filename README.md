@@ -8,7 +8,7 @@
 
 <div align="center">
 
-🚧 **Under construction – Big things are brewing.** 🚧
+🚧 **Under construction - Big things are brewing.** 🚧
 
 </div>
 
