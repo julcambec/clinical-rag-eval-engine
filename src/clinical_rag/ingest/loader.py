@@ -38,13 +38,10 @@ def clean_page_text(text: str) -> str:
     Remove common PDF artifacts: headers, footers, page numbers, copyright notices.
 
     Clinical guideline PDFs typically repeat the document title, copyright line,
-    and page number on every page. These add noise to chunks and degrade retrieval
-    quality. This function strips them using patterns common across WHO, NICE,
-    and CANMAT guideline formats.
+    and page number on every page. They also contain structural pages (ToC,
+    reference lists) that are noisy for retrieval. This function strips artifacts
+    and flags structural content for downstream filtering.
     """
-    ### TODO: So far I've added NICE patterns, but still need to handle WHO and CANMAT
-    ###       artifacts
-
     lines = text.split("\n")
     cleaned_lines: list[str] = []
 
@@ -73,7 +70,6 @@ def clean_page_text(text: str) -> str:
             continue
 
         # Skip repeated document title lines (common NICE pattern)
-        # These are short lines that match the document title exactly
         if stripped.startswith("Depression in adults") and len(stripped) < 80:
             continue
 
@@ -88,6 +84,46 @@ def clean_page_text(text: str) -> str:
     result = re.sub(r"\n{3,}", "\n\n", result)
 
     return result.strip()
+
+
+def _is_reference_heavy(text: str) -> bool:
+    """
+    Detect if a page is primarily a reference/bibliography list.
+
+    Reference pages are dense with citation patterns but useless for answering
+    clinical questions. We detect them by counting numbered reference patterns.
+    """
+    # Count patterns like "1. Author" or "73. Barber JP" (numbered references)
+    numbered_refs = len(re.findall(r"^\s*\d{1,3}\.\s+[A-Z]", text, re.MULTILINE))
+    # Count patterns like "(2013)" or "(2016)" (year citations)
+    year_citations = len(re.findall(r"\(\d{4}\)", text))
+    # Count journal-like patterns: volume(issue) or ;vol:pages
+    journal_patterns = len(re.findall(r";\d+[:(]\d+", text))
+
+    # If a page has many of these, it's a reference list
+    ref_score = numbered_refs + (year_citations * 0.5) + (journal_patterns * 0.5)
+    return ref_score > 8
+
+
+def _is_toc_heavy(text: str) -> bool:
+    """
+    Detect if a page is primarily a table of contents.
+
+    ToC pages have many lines with dot leaders (....) or repeated section numbers
+    followed by page numbers, which are noisy for keyword and semantic search.
+    """
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    if not lines:
+        return False
+
+    # Count lines with dot leaders (common ToC formatting)
+    dot_leader_lines = sum(1 for l in lines if re.search(r"\.{4,}", l))
+    # Count lines ending with a bare page number
+    page_num_lines = sum(1 for l in lines if re.search(r"\d{1,3}\s*$", l) and len(l) > 10)
+
+    # If more than 40% of lines look like ToC entries, flag it
+    toc_ratio = (dot_leader_lines + page_num_lines * 0.5) / len(lines)
+    return toc_ratio > 0.4
 
 
 def load_pdf(pdf_path: Path) -> list[DocumentPage]:
@@ -129,6 +165,17 @@ def load_pdf(pdf_path: Path) -> list[DocumentPage]:
 
         cleaned = clean_page_text(stripped)
         if len(cleaned) < 50:
+            empty_page_count += 1
+            continue
+
+        # Skip structural pages that are noisy for retrieval
+        if _is_reference_heavy(cleaned):
+            logger.debug("Skipping reference-heavy page %d in %s", page_num + 1, pdf_path.name)
+            empty_page_count += 1
+            continue
+
+        if _is_toc_heavy(cleaned):
+            logger.debug("Skipping ToC-heavy page %d in %s", page_num + 1, pdf_path.name)
             empty_page_count += 1
             continue
 
