@@ -45,3 +45,6 @@ Thumbs.db
 # MLflow
 mlruns/
 mlflow.db
+
+# Debugging scripts
+dev-scripts/
