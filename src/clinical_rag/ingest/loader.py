@@ -112,14 +112,14 @@ def _is_toc_heavy(text: str) -> bool:
     ToC pages have many lines with dot leaders (....) or repeated section numbers
     followed by page numbers, which are noisy for keyword and semantic search.
     """
-    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
     if not lines:
         return False
 
     # Count lines with dot leaders (common ToC formatting)
-    dot_leader_lines = sum(1 for l in lines if re.search(r"\.{4,}", l))
+    dot_leader_lines = sum(1 for line in lines if re.search(r"\.{4,}", line))
     # Count lines ending with a bare page number
-    page_num_lines = sum(1 for l in lines if re.search(r"\d{1,3}\s*$", l) and len(l) > 10)
+    page_num_lines = sum(1 for line in lines if re.search(r"\d{1,3}\s*$", line) and len(line) > 10)
 
     # If more than 40% of lines look like ToC entries, flag it
     toc_ratio = (dot_leader_lines + page_num_lines * 0.5) / len(lines)
