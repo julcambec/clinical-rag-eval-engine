@@ -3,7 +3,7 @@
 **Healthcare-grade clinical RAG system for mental health guidelines, with multi-layered evaluation, observability, and prompt management.**  
 
 [![CI](https://github.com/julcambec/clinical-rag-eval-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/julcambec/clinical-rag-eval-engine/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <div align="center">
