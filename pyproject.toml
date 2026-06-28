@@ -86,6 +86,10 @@ warn_unused_configs = true
 disallow_untyped_defs = false  # I'll start permissive; reminder to tighten later
 ignore_missing_imports = true  # Because many ML libs lack type stubs
 
+[[tool.mypy.overrides]]
+module = "numpy.*"
+follow_imports = "skip"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
