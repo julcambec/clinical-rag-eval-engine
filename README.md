@@ -79,9 +79,6 @@ make dashboard   # Launch the eval results dashboard
 | Orchestration | LangChain | RAG chain, document loading, retrieval |
 | Vector store | ChromaDB | Dense embedding storage + retrieval |
 | Sparse retrieval | rank_bm25 | BM25 keyword search |
-| Embeddings | *Under evaluation:* OpenAI vs. open source. | Document + query embedding |
-| Generation | *Under evaluation:* OpenAI vs. open source. | Answer generation |
-| Eval judge | *Under evaluation:* OpenAI vs. open source. | Clinical faithfulness scoring |
 | Eval framework | RAGAS + custom modules | Standard + domain-specific evaluation |
 | Observability | Langfuse | LLM tracing, cost/latency monitoring |
 | Experiment tracking | MLflow | Eval run logging |
