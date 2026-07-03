@@ -62,6 +62,16 @@ make dashboard   # Launch the eval results dashboard
 
 ---
 
+## AI Models
+
+| Role | Default (free, hosted inference) | Local/offline option | Premium option (optional, off by default) |
+|---|---|---|---|
+| **Embeddings** | na | `BAAI/bge-small-en-v1.5` (sentence-transformers, **local CPU**), or `nomic-embed-text` via Ollama | `text-embedding-3-small` |
+| **Generation** | Groq `llama-3.3-70b-versatile` | Ollama `gpt-oss:20b` or `qwen3:8b` | OpenAI `gpt-4o-mini` |
+| **Judge (eval)** | *Under evaluation:* | *Under evaluation:* | *Under evaluation:* |
+
+---
+
 ## Tech Stack
 
 | Layer | Tool | Role |
