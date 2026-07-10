@@ -32,7 +32,8 @@ This repo builds the **evaluation and observability infrastructure** that suppor
 - **Langfuse Observability**: Full LLM call tracing with cost, latency, and token breakdowns
 - **MLflow Experiment Tracking**: Every eval run logged with metrics, parameters, and artifacts
 - **Config-Driven Architecture**: YAML configuration with Pydantic validation throughout; no magic numbers
-- **Docker Compose Deployment**: One-command stack: app + ChromaDB + Langfuse
+- **Fully Offline / Air-Gapped Mode**: Run the entire pipeline (retrieval, generation, and evaluation) with **zero external API calls** via local embeddings + Ollama, for data-sovereignty-constrained clinical environments
+- **Deployment**: One-command Docker Compose stack (app + ChromaDB + Langfuse), plus a click-to-use hosted demo on Hugging Face Spaces (no install, no key entry)
 
 ---
 
@@ -51,22 +52,24 @@ pip install -e ".[dev]"
 
 # Configure
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+# Edit .env and add your GROQ_API_KEY (free, no credit card)
+# or skip keys entirely and run fully offline with Ollama (see Fully Offline Mode)
 
 # Run
-make ingest      # Ingest clinical guidelines into vector store
-make serve       # Start the FastAPI service
-make eval        # Run the evaluation suite
-make dashboard   # Launch the eval results dashboard
+make ingest        # Ingest clinical guidelines into vector store
+make serve         # Start the FastAPI service
+make eval          # Run the evaluation suite (Groq judge - default)
+make eval-offline  # Run evaluation fully offline (Ollama judge - zero external calls)
+make dashboard     # Launch the eval results dashboard
 ```
 
 ---
 
 ## AI Models
 
-| Role | Default (free, hosted inference) | Local/offline option | Premium option (optional, off by default) |
+| Role | Default (free) | Local/offline option | Premium option (optional, off by default) |
 |---|---|---|---|
-| **Embeddings** | na | `BAAI/bge-small-en-v1.5` (sentence-transformers, **local CPU**), or `nomic-embed-text` via Ollama | `text-embedding-3-small` |
+| **Embeddings** | `BAAI/bge-small-en-v1.5` (local CPU, no key) | same, or `nomic-embed-text` via Ollama | `text-embedding-3-small` |
 | **Generation** | Groq `llama-3.3-70b-versatile` | Ollama `gpt-oss:20b` or `qwen3:8b` | OpenAI `gpt-4o-mini` |
 | **Judge (eval)** | Groq `openai/gpt-oss-120b` | Ollama `gpt-oss:20b` (fits 16 GB RAM); `qwen3:8b` as a lighter fallback for slower hardware | OpenAI `gpt-4o` |
 
@@ -79,6 +82,9 @@ make dashboard   # Launch the eval results dashboard
 | Orchestration | LangChain | RAG chain, document loading, retrieval |
 | Vector store | ChromaDB | Dense embedding storage + retrieval |
 | Sparse retrieval | rank_bm25 | BM25 keyword search |
+| Embeddings | sentence-transformers (`bge-small`) | Local CPU document + query embedding (no key) |
+| Hosted inference | Groq (free, OpenAI-compatible) | Fast open-model serving, generation + judge |
+| Local inference | Ollama | Fully offline generation + judge |
 | Eval framework | RAGAS + custom modules | Standard + domain-specific evaluation |
 | Observability | Langfuse | LLM tracing, cost/latency monitoring |
 | Experiment tracking | MLflow | Eval run logging |
@@ -86,6 +92,7 @@ make dashboard   # Launch the eval results dashboard
 | Dashboard | Streamlit | Eval results visualization |
 | Config | YAML + Pydantic | Typed, validated configuration |
 | Containerization | Docker Compose | Full-stack local deployment |
+| Hosted demo | Hugging Face Spaces | Click-to-use Streamlit demo (key stored as a Space secret) |
 | CI | GitHub Actions | Lint, type-check, test |
 
 ---
@@ -125,6 +132,12 @@ clinical-rag-eval-engine/
 ├── docker-compose.yml          # Full-stack deployment
 └── Makefile                    # CLI targets for all workflows
 ```
+
+---
+
+## Fully Offline Mode
+
+For air-gapped or data-sovereignty-constrained environments, the entire pipeline runs with no external API calls and no keys: local `bge-small` embeddings, Ollama for generation and the eval judge (`gpt-oss:20b`, fits 16 GB RAM), and RAGAS configured for local inference. Run `make eval-offline`. Headline metrics in this README use the Groq judge; the offline judge is a lighter discriminator, quantified in the eval methodology docs.
 
 ---
 
