@@ -27,7 +27,7 @@ This repo builds the **evaluation and observability infrastructure** that suppor
 - **Hybrid Retrieval**: Dense embedding search (ChromaDB) + sparse keyword search (BM25) with reciprocal rank fusion
 - **Clinical Faithfulness Scoring**: Custom LLM-as-judge with a domain-specific rubric (clinical accuracy, scope appropriateness, hedging quality, harmful omission risk)
 - **RAGAS Evaluation Baselines**: Context precision, context recall, faithfulness, and answer relevancy on a curated gold dataset
-- **Citation Accuracy Verification**: Automated checking that generated citations match retrieved source passages
+- **Citation Accuracy Verification**: Automated checking that generated citations match retrieved source passages (non-LLM citation checker)
 - **Prompt-Version Regression Testing**: Measurable comparison across versioned prompts with documented rationale
 - **Langfuse Observability**: Full LLM call tracing with cost, latency, and token breakdowns
 - **MLflow Experiment Tracking**: Every eval run logged with metrics, parameters, and artifacts
