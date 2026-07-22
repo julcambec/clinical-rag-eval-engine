@@ -58,6 +58,10 @@ dev = [
     "types-PyYAML>=6.0.0",
     "pre-commit>=3.7.0",
 ]
+premium = [
+    "langchain-openai>=0.2.0",
+    "openai>=1.40.0",
+]
 
 [project.scripts]
 clinical-rag-ingest = "clinical_rag.ingest.indexer:main"
