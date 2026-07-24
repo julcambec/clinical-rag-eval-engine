@@ -57,11 +57,26 @@ cp .env.example .env
 
 # Run
 make ingest        # Ingest clinical guidelines into vector store
-make serve         # Start the FastAPI service
-make eval          # Run the evaluation suite (Groq judge - default)
-make eval-offline  # Run evaluation fully offline (Ollama judge - zero external calls)
-make dashboard     # Launch the eval results dashboard
+make serve         # Planned: fails clearly until the API is wired
+make eval          # Planned: fails clearly until the eval runner is wired
+make eval-offline  # Planned: fails clearly until offline eval is wired
+make dashboard     # Planned: fails clearly until the dashboard is wired
 ```
+
+---
+
+## Current Workflow Readiness
+
+| Target | Current state | Shell behavior |
+|---|---|---|
+| `make ingest` | Implemented entrypoint for guideline indexing. | Executes `clinical_rag.ingest.indexer`. |
+| `make serve` | Planned FastAPI service wiring. | Exits non-zero with the intended command. |
+| `make eval` | Planned evaluation runner wiring. | Exits non-zero with the intended command. |
+| `make eval-offline` | Planned offline evaluation mode. | Exits non-zero with the intended command. |
+| `make dashboard` | Planned Streamlit dashboard wiring. | Exits non-zero with the intended command. |
+
+The non-zero planned targets prevent CI scripts from treating an unimplemented
+clinical evaluation workflow as a successful run.
 
 ---
 

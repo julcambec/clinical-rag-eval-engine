@@ -1,4 +1,6 @@
-.PHONY: help install lint format type-check test test-cov ingest serve eval dashboard clean
+.PHONY: help install lint format type-check test test-cov ingest serve eval eval-offline dashboard clean
+
+PYTHON ?= python
 
 # Default target: show available commands
 help:
@@ -20,6 +22,7 @@ help:
 	@echo "    make ingest         Ingest clinical guidelines into vector store"
 	@echo "    make serve          Start the FastAPI service"
 	@echo "    make eval           Run the evaluation suite"
+	@echo "    make eval-offline   Run evaluation fully offline"
 	@echo "    make dashboard      Launch the Streamlit eval dashboard"
 	@echo ""
 	@echo "  Maintenance:"
@@ -30,37 +33,37 @@ install:
 	pip install -e ".[dev]"
 
 lint:
-	python -m ruff check src/ tests/
+	$(PYTHON) -m ruff check src/ tests/
 
 format:
-	python -m ruff format src/ tests/
-	python -m ruff check --fix src/ tests/
+	$(PYTHON) -m ruff format src/ tests/
+	$(PYTHON) -m ruff check --fix src/ tests/
 
 type-check:
-	python -m mypy src/
+	$(PYTHON) -m mypy src/
 
 test:
-	python -m pytest tests/unit/ -v
+	$(PYTHON) -m pytest tests/unit/ -v
 
 test-cov:
-	python -m pytest tests/unit/ -v --cov=clinical_rag --cov-report=term-missing
+	$(PYTHON) -m pytest tests/unit/ -v --cov=clinical_rag --cov-report=term-missing
 
 # --- Pipeline targets (stubs for now; I still need to wire them up later) ---
 
 ingest:
-	python -m clinical_rag.ingest.indexer
+	$(PYTHON) -m clinical_rag.ingest.indexer
 
 serve:
-	@echo "TODO: Wire up FastAPI service"
-	@echo "Will run: uvicorn clinical_rag.api.app:app --host 0.0.0.0 --port 8000 --reload"
+	PYTHONPATH=src $(PYTHON) -m clinical_rag.ops.readiness serve "uvicorn clinical_rag.api.app:app --host 0.0.0.0 --port 8000 --reload"
 
 eval:
-	@echo "TODO: Wire up evaluation suite"
-	@echo "Will run: python -m clinical_rag.eval.runner"
+	PYTHONPATH=src $(PYTHON) -m clinical_rag.ops.readiness eval "python -m clinical_rag.eval.runner"
+
+eval-offline:
+	PYTHONPATH=src $(PYTHON) -m clinical_rag.ops.readiness eval-offline "python -m clinical_rag.eval.runner --offline"
 
 dashboard:
-	@echo "TODO: Wire up Streamlit dashboard"
-	@echo "Will run: streamlit run src/clinical_rag/dashboard/streamlit_app.py"
+	PYTHONPATH=src $(PYTHON) -m clinical_rag.ops.readiness dashboard "streamlit run src/clinical_rag/dashboard/streamlit_app.py"
 
 clean:
 	rm -rf data/chroma_db/*
