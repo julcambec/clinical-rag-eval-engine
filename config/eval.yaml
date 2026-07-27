@@ -9,8 +9,32 @@ ragas:
     - "faithfulness"
     - "answer_relevancy"
 
+# Active eval profile.
+active_profile: "groq"
+
+profiles:
+  groq:                                   # default: headline metrics
+    generation_provider: "groq"
+    generation_model: "llama-3.3-70b-versatile"
+    judge_provider: "groq"
+    judge_model: "openai/gpt-oss-120b"    # deliberately different from generator
+    subset: "full"
+  local:                                  # fully offline / air-gapped
+    generation_provider: "ollama"
+    generation_model: "gpt-oss:20b"
+    judge_provider: "ollama"
+    judge_model: "gpt-oss:20b"
+    subset: "local_subset"
+  openai:                                 # optional premium
+    generation_provider: "openai"
+    generation_model: "gpt-4o-mini"
+    judge_provider: "openai"
+    judge_model: "gpt-4o"
+    subset: "full"
+
 clinical_judge:
-  model: "gpt-4o"
+  provider: "groq"
+  model: "openai/gpt-oss-120b"
   rubric_dimensions:
     - name: "clinical_accuracy"
       description: "Does the answer reflect the guideline's recommendations?"
@@ -27,4 +51,3 @@ clinical_judge:
 
 results:
   output_dir: "data/eval/results"
-  
