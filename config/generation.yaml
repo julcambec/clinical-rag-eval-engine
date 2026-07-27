@@ -1,10 +1,10 @@
 # Generation configuration
 llm:
-  model: "gpt-4o-mini"
-  temperature: 0.1        # low temp = more deterministic/factual
+  provider: "groq"                        # groq | ollama | openai
+  model: "llama-3.3-70b-versatile"        # Groq free tier default
+  temperature: 0.1                        # low temp = more deterministic/factual
   max_tokens: 1024
 
 prompt:
-  active_version: "v1_baseline"    # which prompt file to load from prompts/
+  active_version: "v1_baseline"           # which prompt file to load from prompts/
   directory: "prompts"
-  
