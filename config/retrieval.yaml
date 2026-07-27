@@ -8,8 +8,16 @@ chunking:
     - ". "
     - " "
 
+embeddings:
+  provider: "huggingface"                 # huggingface | openai
+  model: "BAAI/bge-small-en-v1.5"         # 384-dim, CPU-friendly, no API key
+  device: "cpu"
+  normalize: true                         # cosine-friendly unit vectors
+  # BGE models recommend a query-side instruction prefix for retrieval.
+  # Applied ONLY to the query embedding in retrieval/dense.py, never to documents.
+  query_prefix: "Represent this sentence for searching relevant passages: "
+
 dense:
-  embedding_model: "text-embedding-3-small"
   collection_name: "clinical_guidelines"
   top_k: 10
 
