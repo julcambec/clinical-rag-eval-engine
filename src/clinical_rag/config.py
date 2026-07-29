@@ -17,9 +17,6 @@ from pydantic import BaseModel, Field
 # Project root detection
 # -----------------------
 
-# This walks upward from this file to find the directory containing pyproject.toml.
-# This works whether the code runs installed, from src/, or from the repo root.
-
 
 def _find_project_root() -> Path:
     """Locate the project root by searching upward for pyproject.toml."""
@@ -27,7 +24,6 @@ def _find_project_root() -> Path:
     for parent in [current, *current.parents]:
         if (parent / "pyproject.toml").exists():
             return parent
-    # Fallback: assume CWD is the project root
     return Path.cwd()
 
 
@@ -62,8 +58,15 @@ class ChunkingConfig(BaseModel):
     separators: list[str] = Field(default_factory=lambda: ["\n\n", "\n", ". ", " "])
 
 
+class EmbeddingsConfig(BaseModel):
+    provider: str = "huggingface"          # huggingface | openai
+    model: str = "BAAI/bge-small-en-v1.5"
+    device: str = "cpu"
+    normalize: bool = True
+    query_prefix: str = "Represent this sentence for searching relevant passages: "
+
+
 class DenseRetrievalConfig(BaseModel):
-    embedding_model: str = "text-embedding-3-small"
     collection_name: str = "clinical_guidelines"
     top_k: int = 10
 
@@ -80,6 +83,7 @@ class FusionConfig(BaseModel):
 
 class RetrievalConfig(BaseModel):
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
+    embeddings: EmbeddingsConfig = Field(default_factory=EmbeddingsConfig)
     dense: DenseRetrievalConfig = Field(default_factory=DenseRetrievalConfig)
     sparse: SparseRetrievalConfig = Field(default_factory=SparseRetrievalConfig)
     fusion: FusionConfig = Field(default_factory=FusionConfig)
@@ -89,7 +93,8 @@ class RetrievalConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    model: str = "gpt-4o-mini"
+    provider: str = "groq"                 # groq | ollama | openai
+    model: str = "llama-3.3-70b-versatile"
     temperature: float = 0.1
     max_tokens: int = 1024
 
@@ -128,8 +133,17 @@ class RagasConfig(BaseModel):
     )
 
 
+class EvalProfile(BaseModel):
+    generation_provider: str = "groq"
+    generation_model: str = "llama-3.3-70b-versatile"
+    judge_provider: str = "groq"
+    judge_model: str = "openai/gpt-oss-120b"
+    subset: str = "full"
+
+
 class ClinicalJudgeConfig(BaseModel):
-    model: str = "gpt-4o"
+    provider: str = "groq"
+    model: str = "openai/gpt-oss-120b"
     rubric_dimensions: list[RubricDimension] = Field(default_factory=list)
 
 
@@ -140,6 +154,8 @@ class EvalResultsConfig(BaseModel):
 class EvalConfig(BaseModel):
     dataset: DatasetConfig = Field(default_factory=DatasetConfig)
     ragas: RagasConfig = Field(default_factory=RagasConfig)
+    active_profile: str = "groq"
+    profiles: dict[str, EvalProfile] = Field(default_factory=dict)
     clinical_judge: ClinicalJudgeConfig = Field(default_factory=ClinicalJudgeConfig)
     results: EvalResultsConfig = Field(default_factory=EvalResultsConfig)
 
@@ -188,8 +204,6 @@ class ServiceConfig(BaseModel):
 
 
 class Settings(BaseModel):
-    """Aggregated settings loaded from all config YAML files."""
-
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
     eval: EvalConfig = Field(default_factory=EvalConfig)
@@ -197,10 +211,7 @@ class Settings(BaseModel):
 
 
 def load_settings() -> Settings:
-    """
-    Load and validate all configuration from YAML files.
-    Returns a fully-typed Settings object. Missing files fall back to defaults.
-    """
+    """Load and validate all configuration from YAML files."""
     raw: dict[str, Any] = {}
 
     for key, filename in [
@@ -212,7 +223,7 @@ def load_settings() -> Settings:
         try:
             raw[key] = _load_yaml(filename)
         except FileNotFoundError:
-            raw[key] = {}  # fall back to Pydantic defaults
+            raw[key] = {}
 
     return Settings(
         retrieval=RetrievalConfig(**raw["retrieval"]),
