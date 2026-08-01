@@ -26,7 +26,7 @@ load_dotenv()
 
 
 def get_embeddings(settings: Settings | None = None) -> Embeddings:
-    """Return the embeddings object for the configured provider."""
+    """Return the embeddings object for the configured provider"""
     settings = settings or load_settings()
     cfg = settings.retrieval.embeddings
 
@@ -53,7 +53,7 @@ def get_chat_model(
     temperature: float = 0.1,
     max_tokens: int = 1024,
 ) -> BaseChatModel:
-    """Return a chat model for an explicit provider/model (used by eval judge too)."""
+    """Return a chat model for an explicit provider/model (used by eval judge too)"""
     if provider == "groq":
         from langchain_groq import ChatGroq
 
@@ -62,7 +62,7 @@ def get_chat_model(
     if provider == "ollama":
         from langchain_ollama import ChatOllama
 
-        # Ollama names the completion-length param differently.
+        # Ollama names the completion-length param differently
         return ChatOllama(model=model, temperature=temperature, num_predict=max_tokens)
 
     if provider == "openai":  # optional premium
@@ -74,7 +74,7 @@ def get_chat_model(
 
 
 def get_generation_model(settings: Settings | None = None) -> BaseChatModel:
-    """Convenience: build the generation chat model from generation.yaml."""
+    """Convenience: build the generation chat model from generation.yaml"""
     settings = settings or load_settings()
     llm = settings.generation.llm
     return get_chat_model(
