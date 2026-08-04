@@ -2,11 +2,11 @@
 Indexing pipeline for clinical guideline chunks.
 
 Stores text chunks in two complementary indexes:
-- ChromaDB: dense vector store for embedding-based semantic search.
+- ChromaDB (via LangChain's Chroma wrapper): dense vector store using the
+  configured local embeddings (BAAI/bge-small-en-v1.5), for semantic search.
 - BM25: sparse keyword index for term-matching retrieval.
 
-The two indexes are used together via hybrid retrieval (reciprocal rank fusion)
-during the retrieval stage.
+The two are combined via reciprocal rank fusion at retrieval time.
 """
 
 from __future__ import annotations
@@ -15,14 +15,15 @@ import json
 import pickle
 from pathlib import Path
 
-import chromadb
-from chromadb.config import Settings as ChromaSettings
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
 
 from clinical_rag.config import PROJECT_ROOT, load_settings
 from clinical_rag.ingest.loader import load_guidelines
 from clinical_rag.ingest.splitter import TextChunk, split_pages
 from clinical_rag.ops.logging import get_logger, setup_logging
+from clinical_rag.providers import get_embeddings
 
 logger = get_logger(__name__)
 
@@ -40,98 +41,63 @@ BM25_DIR = PROJECT_ROOT / "data" / "bm25_index"
 # ------------------
 
 
-def get_chroma_client(persist_dir: Path | None = None) -> chromadb.ClientAPI:
-    """
-    Create a persistent ChromaDB client.
-
-    Args:
-        persist_dir: Directory to persist the database. Defaults to data/chroma_db/.
-
-    Returns:
-        A ChromaDB PersistentClient.
-    """
-    persist_dir = persist_dir or CHROMA_DIR
-    persist_dir.mkdir(parents=True, exist_ok=True)
-
-    client = chromadb.PersistentClient(
-        path=str(persist_dir),
-        settings=ChromaSettings(anonymized_telemetry=False),
-    )
-    return client
-
-
 def index_chunks_chroma(
     chunks: list[TextChunk],
     collection_name: str | None = None,
     persist_dir: Path | None = None,
 ) -> int:
     """
-    Index text chunks into ChromaDB with OpenAI embeddings.
+    Index text chunks into ChromaDB using the configured local embeddings.
 
-    ChromaDB handles embedding generation internally when configured with
-    an embedding function. We pass the raw text and it embeds + stores.
-
-    However, for better control and consistency with our config, I use
-    ChromaDB's default embedding function first, then plan to switch to
-    OpenAI embeddings when the retrieval layer is built. For now, ChromaDB's
-    built-in all-MiniLM-L6-v2 gets us a good working index.
-
-    Args:
-        chunks: List of TextChunk objects to index.
-        collection_name: Name of the ChromaDB collection.
-        persist_dir: Where to persist the database.
-
-    Returns:
-        Number of chunks indexed.
+    We use LangChain's Chroma wrapper (not the raw client) so that the SAME
+    embeddings object is reused at retrieval time, and so documents/queries are
+    embedded consistently. The collection is created with cosine distance, which
+    pairs well with normalized bge vectors.
     """
     settings = load_settings()
     collection_name = collection_name or settings.retrieval.dense.collection_name
+    persist_dir = persist_dir or CHROMA_DIR
+    persist_dir.mkdir(parents=True, exist_ok=True)
 
-    client = get_chroma_client(persist_dir)
+    embeddings = get_embeddings(settings)
 
-    # Delete existing collection to ensure clean re-indexing
-    try:
-        client.delete_collection(collection_name)
-        logger.info("Deleted existing collection '%s' for clean re-index", collection_name)
-    except (ValueError, chromadb.errors.NotFoundError):
-        pass  # Collection doesn't exist yet; that's fine
-
-    collection = client.create_collection(
-        name=collection_name,
-        metadata={"description": "Clinical guideline chunks for RAG retrieval"},
+    # Clean re-index: drop any existing collection first (avoids stale/mixed vectors).
+    existing = Chroma(
+        collection_name=collection_name,
+        embedding_function=embeddings,
+        persist_directory=str(persist_dir),
     )
+    try:
+        existing.delete_collection()
+        logger.info("Deleted existing collection '%s' for clean re-index", collection_name)
+    except Exception:  # noqa: BLE001 - collection may simply not exist yet
+        pass
 
-    # ChromaDB has a batch size limit; add in batches of 500
-    batch_size = 500
-    total_indexed = 0
-
-    for i in range(0, len(chunks), batch_size):
-        batch = chunks[i : i + batch_size]
-
-        collection.add(
-            ids=[chunk.chunk_id for chunk in batch],
-            documents=[chunk.text for chunk in batch],
-            metadatas=[
-                {k: str(v) for k, v in chunk.metadata.items()}  # ChromaDB needs str values
-                for chunk in batch
-            ],
+    documents = [
+        Document(
+            page_content=chunk.text,
+            metadata={**chunk.metadata, "chunk_id": chunk.chunk_id},
         )
+        for chunk in chunks
+    ]
+    ids = [chunk.chunk_id for chunk in chunks]
 
-        total_indexed += len(batch)
-        logger.info(
-            "Indexed batch %d/%d (%d chunks)",
-            (i // batch_size) + 1,
-            (len(chunks) + batch_size - 1) // batch_size,
-            total_indexed,
-        )
+    Chroma.from_documents(
+        documents=documents,
+        embedding=embeddings,
+        ids=ids,
+        collection_name=collection_name,
+        persist_directory=str(persist_dir),
+        collection_metadata={"hnsw:space": "cosine"},
+    )
 
     logger.info(
-        "ChromaDB indexing complete: %d chunks in collection '%s'",
-        total_indexed,
+        "ChromaDB indexing complete: %d chunks in collection '%s' (embeddings: %s)",
+        len(documents),
         collection_name,
+        settings.retrieval.embeddings.model,
     )
-
-    return total_indexed
+    return len(documents)
 
 
 # ---------------
@@ -141,10 +107,8 @@ def index_chunks_chroma(
 
 def _tokenize(text: str) -> list[str]:
     """
-    Simple whitespace + lowercasing tokenizer for BM25.
-
-    For large-scale deployment, I'd use another tokenizer (e.g., spaCy, NLTK),
-    but for this first prototype this is sufficient and dependency-light.
+    Whitespace + lowercase tokenizer for BM25.
+    NOTE: retrieval/sparse.py MUST tokenize queries identically.
     """
     return text.lower().split()
 
@@ -153,38 +117,18 @@ def index_chunks_bm25(
     chunks: list[TextChunk],
     persist_dir: Path | None = None,
 ) -> int:
-    """
-    Build and persist a BM25 keyword index from text chunks.
-
-    Saves two files:
-    - bm25_index.pkl: The serialized BM25Okapi model.
-    - bm25_chunks.json: The chunk texts and metadata, aligned by index
-      so that BM25 result indices map back to the correct chunks.
-
-    Args:
-        chunks: List of TextChunk objects to index.
-        persist_dir: Where to save the index files.
-
-    Returns:
-        Number of chunks indexed.
-    """
+    """Build and persist a BM25 keyword index (model + aligned chunk data)."""
     persist_dir = persist_dir or BM25_DIR
     persist_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("Building BM25 index from %d chunks...", len(chunks))
 
-    # Tokenize all chunks
     tokenized_corpus = [_tokenize(chunk.text) for chunk in chunks]
-
-    # Build the BM25 index
     bm25 = BM25Okapi(tokenized_corpus)
 
-    # Save the BM25 model
-    bm25_path = persist_dir / "bm25_index.pkl"
-    with open(bm25_path, "wb") as f:
+    with open(persist_dir / "bm25_index.pkl", "wb") as f:
         pickle.dump(bm25, f)
 
-    # Save chunk data alongside (we need this to map BM25 scores back to chunks)
     chunks_data = [
         {
             "chunk_id": chunk.chunk_id,
@@ -193,16 +137,10 @@ def index_chunks_bm25(
         }
         for chunk in chunks
     ]
-    chunks_path = persist_dir / "bm25_chunks.json"
-    with open(chunks_path, "w", encoding="utf-8") as f:
+    with open(persist_dir / "bm25_chunks.json", "w", encoding="utf-8") as f:
         json.dump(chunks_data, f, indent=2, ensure_ascii=False)
 
-    logger.info(
-        "BM25 indexing complete: %d chunks saved to %s",
-        len(chunks),
-        persist_dir,
-    )
-
+    logger.info("BM25 indexing complete: %d chunks saved to %s", len(chunks), persist_dir)
     return len(chunks)
 
 
@@ -216,37 +154,20 @@ def run_ingestion(
     chroma_dir: Path | None = None,
     bm25_dir: Path | None = None,
 ) -> dict[str, int]:
-    """
-    Run the complete ingestion pipeline: load → split → index.
-
-    This is the main entry point called by `make ingest`.
-
-    Args:
-        guidelines_dir: Path to the clinical guideline PDFs.
-        chroma_dir: Where to persist ChromaDB.
-        bm25_dir: Where to persist the BM25 index.
-
-    Returns:
-        Dictionary with pipeline stats (pages_loaded, chunks_created,
-        chunks_indexed_chroma, chunks_indexed_bm25).
-    """
+    """Run the complete ingestion pipeline: load -> split -> index."""
     guidelines_dir = guidelines_dir or GUIDELINES_DIR
 
     logger.info("=" * 60)
     logger.info("Starting ingestion pipeline")
     logger.info("=" * 60)
 
-    # Stage 1: Load PDFs
     logger.info("Stage 1/3: Loading PDFs from %s", guidelines_dir)
     pages = load_guidelines(guidelines_dir)
 
-    # Stage 2: Split into chunks
     logger.info("Stage 2/3: Splitting pages into chunks")
     chunks = split_pages(pages)
 
-    # Stage 3: Index into both stores
     logger.info("Stage 3/3: Indexing chunks")
-
     chroma_count = index_chunks_chroma(chunks, persist_dir=chroma_dir)
     bm25_count = index_chunks_bm25(chunks, persist_dir=bm25_dir)
 
@@ -264,11 +185,6 @@ def run_ingestion(
     logger.info("=" * 60)
 
     return stats
-
-
-# ----------------
-# CLI entry point
-# ----------------
 
 
 def main() -> None:
