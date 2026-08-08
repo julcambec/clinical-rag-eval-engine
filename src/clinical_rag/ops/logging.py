@@ -98,9 +98,18 @@ def get_logger(name: str) -> logging.Logger:
     """
     Get a logger instance for a module.
 
+    Patched:
+    When a module is run directly (`python -m clinical_rag.ingest.indexer`),
+    Python sets its __name__ to "__main__". A logger by that name sits outside
+    the "clinical_rag" tree and therefore never inherits the handler installed
+    by setup_logging(), so its records are silently dropped. We remap it so
+    entrypoint modules log identically whether imported or run as scripts.
+
     Usage:
         from clinical_rag.ops.logging import get_logger
         logger = get_logger(__name__)
         logger.info("Loaded %d chunks", chunk_count)
     """
+    if name == "__main__":
+        name = "clinical_rag.__main__"
     return logging.getLogger(name)
